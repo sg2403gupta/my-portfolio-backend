@@ -8,40 +8,10 @@ router.post("/", async (req, res) => {
 
     // Validation
     if (!name || !email || !message) {
-      return res
-        .status(400)
-        .json({ success: false, error: "All fields required" });
-    }
-
-    // Respond immediately (do NOT wait for email)
-    res.status(200).json({
-      success: true,
-      message: "Message received successfully",
-    });
-
-    // Send emails in background
-    sendContact({ name, email, message }).catch((err) =>
-      console.error("Admin mail error:", err)
-    );
-
-    sendAutoReply({ name, email }).catch((err) =>
-      console.error("Auto-reply error:", err)
-    );
-  } catch (err) {
-    console.error("Server Error:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-module.exports = router;
-router.post("/", async (req, res) => {
-  try {
-    const { name, email, message } = req.body;
-
-    if (!name || !email || !message) {
-      return res
-        .status(400)
-        .json({ success: false, error: "All fields required" });
+      return res.status(400).json({
+        success: false,
+        error: "All fields required",
+      });
     }
 
     // Respond immediately
@@ -50,13 +20,18 @@ router.post("/", async (req, res) => {
       message: "Message received successfully",
     });
 
-    // Log results
-    const adminInfo = await sendContact({ name, email, message });
-    console.log("📨 Admin mail sent:", adminInfo.messageId);
+    // Send emails asynchronously (background)
+    sendContact({ name, email, message })
+      .then((info) => console.log("📨 Admin mail sent:", info?.messageId))
+      .catch((err) => console.error("Admin mail error:", err));
 
-    const autoInfo = await sendAutoReply({ name, email });
-    console.log("✉ Auto-reply sent:", autoInfo.messageId);
+    sendAutoReply({ name, email })
+      .then((info) => console.log("✉ Auto-reply sent:", info?.messageId))
+      .catch((err) => console.error("Auto-reply error:", err));
   } catch (err) {
-    console.error("Mail Error:", err);
+    console.error("Server Error:", err);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 });
+
+module.exports = router;
