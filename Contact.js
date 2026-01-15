@@ -1,54 +1,90 @@
-// require("dotenv").config();
+const nodemailer = require("nodemailer");
 
-// const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
-// const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
-// const EMAILJS_AUTOREPLY_TEMPLATE_ID =
-//   process.env.EMAILJS_AUTOREPLY_TEMPLATE_ID;
-// const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
+// Basic input sanitization (prevents HTML/header injection)
+const escapeHTML = (str = "") =>
+  str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 
-// // ## **✨ Advanced Auto-Reply Template (Professional)**
+// Create reusable transporter
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // TLS
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+});
 
-// // Here's a more professional auto-reply template:
-// ```;
-// // Subject: Thank you for contacting me! 🎉
+// Verify transporter on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ Email transporter error:", error.message || error);
+  } else {
+    console.log("✅ Email server is ready to send messages");
+  }
+});
 
-// // Hi {{from_name}},
+// Send message to you (admin)
+const sendContact = async ({ name, email, message }) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error(
+      "Missing EMAIL_USER or EMAIL_PASS in environment variables"
+    );
+  }
 
-// // Thanks for reaching out! I've received your message and I'm excited to connect with you.
+  const safeName = escapeHTML(name);
+  const safeEmail = escapeHTML(email);
+  const safeMessage = escapeHTML(message);
 
-// // ━━━━━━━━━━━━━━━━━━━━━━
-// // 📩 YOUR MESSAGE
-// // ━━━━━━━━━━━━━━━━━━━━━━
+  const info = await transporter.sendMail({
+    from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER,
+    replyTo: safeEmail,
+    subject: `New Contact Form Message from ${safeName}`,
+    html: `
+      <h2>New Contact Request</h2>
+      <p><strong>Name:</strong> ${safeName}</p>
+      <p><strong>Email:</strong> ${safeEmail}</p>
+      <p><strong>Message:</strong></p>
+      <p>${safeMessage.replace(/\n/g, "<br/>")}</p>
+    `,
+  });
 
-// // {{message}}
+  return info;
+};
 
-// // ━━━━━━━━━━━━━━━━━━━━━━
+// Auto-reply to user
+const sendAutoReply = async ({ name, email }) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error(
+      "Missing EMAIL_USER or EMAIL_PASS in environment variables"
+    );
+  }
 
-// // ⏰ WHAT'S NEXT?
-// // ━━━━━━━━━━━━━━━━━━━━━━
+  const safeName = escapeHTML(name);
+  const safeEmail = escapeHTML(email);
 
-// // I typically respond within 24-48 hours. I'll review your message carefully and get back to you as soon as possible.
+  const info = await transporter.sendMail({
+    from: `"Shubham Gupta" <${process.env.EMAIL_USER}>`,
+    to: safeEmail,
+    subject: "Thank you for contacting me!",
+    html: `
+      <p>Hi ${safeName},</p>
+      <p>Thank you for reaching out! I've received your message and will get back to you within 24–48 hours.</p>
+      <p>Meanwhile, feel free to explore my portfolio.</p>
+      <p>Best regards,<br/><strong>Shubham Gupta</strong></p>
+    `,
+  });
 
-// // In the meantime, feel free to:
-// // ✅ Check out my portfolio projects
-// // ✅ Connect with me on LinkedIn
-// // ✅ Follow my GitHub for latest updates
+  return info;
+};
 
-// // 📞 CONTACT INFORMATION
-// // ━━━━━━━━━━━━━━━━━━━━━━
-
-// // 📧 Email: your.email@example.com
-// // 💼 LinkedIn: linkedin.com/in/yourprofile
-// // 🐙 GitHub: github.com/yourusername
-// // 🌐 Portfolio: yourportfolio.com
-
-// // Looking forward to talking with you!
-
-// // Best regards,
-// // {{to_name}}
-// // Full Stack MERN Developer
-
-// // ━━━━━━━━━━━━━━━━━━━━━━
-// // This is an automated confirmation email.
-// // Your message has been successfully received.
-// // ━━━━━━━━━━━━━━━━━━━━━━
+module.exports = { sendContact, sendAutoReply };
