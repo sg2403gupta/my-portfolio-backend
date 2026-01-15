@@ -19,13 +19,13 @@ router.post("/", async (req, res) => {
       message: "Message sent successfully",
     });
 
-    // Trigger emails in background
+    // Background email sending
     sendContact({ name, email, message }).catch((err) =>
-      console.error("❌ Admin mail error:", err)
+      console.error("Admin mail error:", err)
     );
 
     sendAutoReply({ name, email }).catch((err) =>
-      console.error("❌ Auto-reply error:", err)
+      console.error("Auto-reply error:", err)
     );
   } catch (err) {
     console.error("Server Error:", err);
