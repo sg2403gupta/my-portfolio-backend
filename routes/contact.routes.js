@@ -34,3 +34,29 @@ router.post("/", async (req, res) => {
 });
 
 module.exports = router;
+router.post("/", async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res
+        .status(400)
+        .json({ success: false, error: "All fields required" });
+    }
+
+    // Respond immediately
+    res.status(200).json({
+      success: true,
+      message: "Message received successfully",
+    });
+
+    // Log results
+    const adminInfo = await sendContact({ name, email, message });
+    console.log("📨 Admin mail sent:", adminInfo.messageId);
+
+    const autoInfo = await sendAutoReply({ name, email });
+    console.log("✉ Auto-reply sent:", autoInfo.messageId);
+  } catch (err) {
+    console.error("Mail Error:", err);
+  }
+});
